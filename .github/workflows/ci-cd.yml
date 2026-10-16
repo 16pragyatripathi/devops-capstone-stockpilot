@@ -147,7 +147,8 @@ jobs:
     # AWS_DEPLOY_ROLE_ARN (Terraform output github_deploy_role_arn; a secret so it is masked in public logs).
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
-    environment: production
+    # No `environment:` here on purpose: it would change the OIDC subject to
+    # repo:<repo>:environment:<name>, and the IAM trust policy only accepts refs/heads/main.
     concurrency:
       group: deploy-production
       cancel-in-progress: false
