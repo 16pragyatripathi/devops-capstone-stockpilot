@@ -1,5 +1,7 @@
 # StockPilot: Inventory Management on Kubernetes
 
+**Name:** Pragya Tripathi · **Roll No:** 10032 · **Project:** DevOps Final Capstone (Session 21)
+
 [![StockPilot CI/CD](https://github.com/16pragyatripathi/devops-capstone-stockpilot/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/16pragyatripathi/devops-capstone-stockpilot/actions/workflows/ci-cd.yml)
 
 StockPilot is a small SaaS-style **inventory management** app for warehouses and offices. It tracks
