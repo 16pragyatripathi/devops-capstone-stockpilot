@@ -2,7 +2,7 @@
 
 | File | What it creates |
 |------|-----------------|
-| `main.tf` | VPC (2 public + 2 private subnets in 2 AZs, NAT gateway), EKS cluster, managed node group, EKS add-ons (VPC CNI, CoreDNS, kube-proxy, metrics-server, EBS CSI driver), IAM role for the EBS CSI driver |
+| `main.tf` | VPC (2 public + 2 private subnets in 2 AZs, NAT gateway), EKS cluster, managed node group, EKS add-ons (VPC CNI, CoreDNS, kube-proxy, EBS CSI driver), IAM role for the EBS CSI driver |
 | `github-oidc.tf` | GitHub Actions OIDC provider and an IAM role that only `main` of this repo can assume, mapped to the cluster through an EKS access entry |
 | `variables.tf` / `terraform.tfvars.example` | Inputs (region, sizes, Kubernetes version, repo) |
 | `outputs.tf` | VPC/subnet IDs, cluster name/endpoint, kubeconfig command, deploy role ARN |

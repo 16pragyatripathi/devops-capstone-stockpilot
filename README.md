@@ -245,8 +245,7 @@ $(terraform output -raw configure_kubectl)
 
 Creates: VPC `10.20.0.0/16` with **2 public** subnets (NAT, load balancers) and **2 private**
 subnets (worker nodes) across 2 AZs; an **EKS** cluster with a managed node group (2 × t3.medium,
-autoscaling 2–4); EKS add-ons (VPC CNI, CoreDNS, kube-proxy, metrics-server, EBS CSI driver via
-Pod Identity); and the GitHub OIDC deploy role. Default region: `ap-south-1`.
+autoscaling 2–4); EKS add-ons (VPC CNI, CoreDNS, kube-proxy, EBS CSI driver via Pod Identity); and the GitHub OIDC deploy role. Default region: `ap-south-1`.
 
 ---
 

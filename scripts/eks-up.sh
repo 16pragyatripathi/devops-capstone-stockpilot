@@ -18,6 +18,9 @@ kubectl apply -f "$ROOT/k8s/namespace.yaml" -f "$ROOT/k8s/storageclass-gp3.yaml"
 # The pre-created gp2 class must not also be the default.
 kubectl annotate storageclass gp2 storageclass.kubernetes.io/is-default-class=false --overwrite 2>/dev/null || true
 
+log "Installing metrics-server (needed by the HPA)"
+helm upgrade --install metrics-server metrics-server/metrics-server -n kube-system --wait
+
 install_monitoring
 
 log "Installing Traefik ingress controller (AWS NLB)"

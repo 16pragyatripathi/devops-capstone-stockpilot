@@ -57,8 +57,7 @@ module "eks" {
     eks-pod-identity-agent = { before_compute = true }
     kube-proxy             = {}
     coredns                = {}
-    metrics-server         = {} # feeds `kubectl top` and the HPA
-    aws-ebs-csi-driver = {      # PersistentVolumes for PostgreSQL
+    aws-ebs-csi-driver = { # PersistentVolumes for PostgreSQL
       pod_identity_association = [{
         role_arn        = aws_iam_role.ebs_csi.arn
         service_account = "ebs-csi-controller-sa"
