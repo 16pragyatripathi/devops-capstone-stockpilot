@@ -1,0 +1,37 @@
+# kube-prometheus-stack: Prometheus Operator + Prometheus + Grafana + kube-state-metrics + node-exporter.
+#   helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+#     -n monitoring --create-namespace -f monitoring/kube-prometheus-stack-values.yaml \
+#     --set grafana.adminPassword="$GRAFANA_PASSWORD"
+prometheus:
+  prometheusSpec:
+    # Pick up ServiceMonitors / PrometheusRules from every namespace, not only this release's.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorNamespaceSelector: {}
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    ruleNamespaceSelector: {}
+    retention: 3d
+    resources:
+      requests: { cpu: 200m, memory: 512Mi }
+      limits: { memory: 1Gi }
+
+grafana:
+  enabled: true
+  defaultDashboardsTimezone: browser
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      searchNamespace: ALL   # loads the StockPilot dashboard ConfigMap shipped by the app chart
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 256Mi }
+
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests: { cpu: 10m, memory: 32Mi }
+
+prometheusOperator:
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }

@@ -1,0 +1,10 @@
+# Docker Desktop's VM doesn't allow node-exporter's host mounts; skip it locally.
+nodeExporter:
+  enabled: false
+prometheus-node-exporter:
+  hostRootFsMount:
+    enabled: false
+kubeEtcd: { enabled: false }
+kubeControllerManager: { enabled: false }
+kubeScheduler: { enabled: false }
+kubeProxy: { enabled: false }
