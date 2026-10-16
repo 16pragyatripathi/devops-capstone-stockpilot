@@ -1,0 +1,10 @@
+line-length = 120
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "W", "I", "B", "UP", "S"]
+ignore = ["B008"]   # FastAPI's Depends() in default arguments is the intended pattern
+
+[lint.per-file-ignores]
+"tests/*" = ["S101"]           # assert is how pytest works
+"alembic/versions/*" = ["E501"]
