@@ -1,0 +1,24 @@
+# LAB 2 - a Service with no endpoints.
+#   kubectl apply -f troubleshooting/broken-service.yaml
+#   kubectl get endpointslices -n stockpilot -l kubernetes.io/service-name=stockpilot-api-broken   -> no endpoints
+#   kubectl get pods -n stockpilot --show-labels                    -> pods are labelled stockpilot-backend
+#   kubectl run curl -n stockpilot --rm -it --image=curlimages/curl --restart=Never -- \
+#       curl -m 3 http://stockpilot-api-broken:8000/health          -> connection refused / timeout
+# Root cause: the selector says "stockpilot-api" but the pods are "stockpilot-backend",
+# and the targetPort is wrong too. No matching labels = no endpoints = no traffic.
+# Fix:
+#   kubectl patch svc stockpilot-api-broken -n stockpilot --type merge -p \
+#     '{"spec":{"selector":{"app.kubernetes.io/name":"stockpilot-backend"},"ports":[{"port":8000,"targetPort":8000}]}}'
+# Clean up: kubectl delete -f troubleshooting/broken-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: stockpilot-api-broken
+  namespace: stockpilot
+  labels: { lab: broken-service }
+spec:
+  selector:
+    app.kubernetes.io/name: stockpilot-api   # wrong: the backend pods are labelled stockpilot-backend
+  ports:
+    - port: 8000
+      targetPort: 8080                        # wrong: uvicorn listens on 8000

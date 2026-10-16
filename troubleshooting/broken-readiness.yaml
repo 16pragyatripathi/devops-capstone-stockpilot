@@ -1,0 +1,42 @@
+# LAB 3 - Running but never Ready (bad database credentials).
+#   kubectl apply -f troubleshooting/broken-readiness.yaml
+#   kubectl get pods -n stockpilot -l lab=broken-readiness      -> STATUS Running but READY 0/1
+#   kubectl logs -n stockpilot -l lab=broken-readiness          -> GET /ready 503 (password authentication failed)
+# Lesson: /health (liveness) only says the process is up; /ready (readiness) checks the database,
+# so Kubernetes keeps this pod out of the Service until it can actually serve requests.
+# Clean up: kubectl delete -f troubleshooting/broken-readiness.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stockpilot-broken-readiness
+  namespace: stockpilot
+  labels: { lab: broken-readiness }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { lab: broken-readiness }
+  template:
+    metadata:
+      labels: { lab: broken-readiness }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: backend
+          image: stockpilot-backend:local   # replace with ghcr.io/<owner>/stockpilot-backend:<sha> on EKS
+          imagePullPolicy: IfNotPresent
+          command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+          env:
+            - name: DATABASE_URL
+              value: postgresql+psycopg://stockpilot:wrong-password@stockpilot-postgres:5432/stockpilot
+          readinessProbe:
+            httpGet: { path: /ready, port: 8000 }
+            periodSeconds: 5
+          securityContext:
+            runAsUser: 10001
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 10m, memory: 64Mi }
+            limits: { cpu: 200m, memory: 256Mi }

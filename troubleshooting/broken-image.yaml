@@ -1,0 +1,35 @@
+# LAB 1 - ImagePullBackOff.
+#   kubectl apply -f troubleshooting/broken-image.yaml
+#   kubectl get pods -n stockpilot -l lab=broken-image          -> ErrImagePull / ImagePullBackOff
+#   kubectl describe pod -n stockpilot -l lab=broken-image      -> "manifest unknown" / "not found"
+#   kubectl get events -n stockpilot --sort-by=.lastTimestamp
+# Fix: point the image at a tag that exists, e.g.
+#   kubectl set image deploy/stockpilot-broken-image -n stockpilot backend=ghcr.io/<owner>/stockpilot-backend:<commit-sha>
+# Clean up: kubectl delete -f troubleshooting/broken-image.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stockpilot-broken-image
+  namespace: stockpilot
+  labels: { lab: broken-image }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { lab: broken-image }
+  template:
+    metadata:
+      labels: { lab: broken-image }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: backend
+          image: ghcr.io/16pragyatripathi/stockpilot-backend:v9.9.9-does-not-exist
+          securityContext:
+            runAsUser: 10001
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { cpu: 100m, memory: 64Mi }
