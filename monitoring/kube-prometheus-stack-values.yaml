@@ -24,8 +24,14 @@ grafana:
       label: grafana_dashboard
       searchNamespace: ALL   # loads the StockPilot dashboard ConfigMap shipped by the app chart
   resources:
-    requests: { cpu: 50m, memory: 128Mi }
-    limits: { memory: 256Mi }
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { memory: 512Mi }
+  # First start runs Grafana's database migrations, which can take minutes on small nodes.
+  livenessProbe:
+    httpGet: { path: /api/health, port: 3000 }
+    initialDelaySeconds: 300
+    timeoutSeconds: 30
+    failureThreshold: 10
 
 alertmanager:
   alertmanagerSpec:
