@@ -1,0 +1,65 @@
+# Default values for the StockPilot chart.
+# The CI pipeline overrides image.owner and the tags with the Git commit SHA.
+
+image:
+  registry: ghcr.io
+  owner: 16pragyatripathi
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+backend:
+  repository: stockpilot-backend
+  tag: latest
+  replicaCount: 2
+  port: 8000
+  resources:
+    requests: { cpu: 100m, memory: 160Mi }
+    limits: { cpu: 500m, memory: 384Mi }
+  corsOrigins: "*"
+
+frontend:
+  repository: stockpilot-frontend
+  tag: latest
+  replicaCount: 2
+  port: 8080
+  resources:
+    requests: { cpu: 50m, memory: 32Mi }
+    limits: { cpu: 200m, memory: 128Mi }
+
+postgres:
+  image: postgres:16-alpine
+  database: stockpilot
+  username: stockpilot
+  # Leave empty to generate a random password on first install (kept across upgrades).
+  password: ""
+  storage: 5Gi
+  storageClassName: ""   # "" = cluster default StorageClass
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+
+service:
+  type: ClusterIP
+
+ingress:
+  enabled: true
+  className: traefik
+  host: ""              # empty = answer on any hostname (e.g. the load balancer's DNS name)
+  annotations: {}
+  tls: []
+
+hpa:
+  enabled: true
+  backend: { minReplicas: 2, maxReplicas: 6, targetCPUUtilizationPercentage: 60 }
+  frontend: { minReplicas: 2, maxReplicas: 4, targetCPUUtilizationPercentage: 70 }
+
+monitoring:
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+    labels:
+      release: kube-prometheus-stack
+  prometheusRules:
+    enabled: true
+  grafanaDashboard:
+    enabled: true

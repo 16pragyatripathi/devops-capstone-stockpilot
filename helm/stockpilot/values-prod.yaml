@@ -1,0 +1,8 @@
+# AWS EKS (terraform/). gp3 StorageClass comes from k8s/storageclass-gp3.yaml.
+postgres:
+  storageClassName: gp3
+  storage: 10Gi
+ingress:
+  host: ""   # set to your DNS name once one points at the load balancer
+hpa:
+  backend: { minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 60 }

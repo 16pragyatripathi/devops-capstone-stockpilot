@@ -1,0 +1,16 @@
+# Local kind cluster (see scripts/kind-up.sh). Images are side-loaded with `kind load`.
+image:
+  registry: ""
+  owner: ""
+  pullPolicy: IfNotPresent
+backend:
+  repository: stockpilot-backend
+  tag: local
+frontend:
+  repository: stockpilot-frontend
+  tag: local
+ingress:
+  host: stockpilot.localhost
+postgres:
+  password: stockpilot-dev
+  storage: 1Gi

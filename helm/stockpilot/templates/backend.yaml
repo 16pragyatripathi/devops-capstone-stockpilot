@@ -1,0 +1,99 @@
+{{- $sel := dict "ctx" . "component" "backend" -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "stockpilot.backendService" . }}
+  labels:
+    {{- include "stockpilot.labels" . | nindent 4 }}
+    {{- include "stockpilot.selectorLabels" $sel | nindent 4 }}
+spec:
+  {{- if not .Values.hpa.enabled }}
+  replicas: {{ .Values.backend.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  selector:
+    matchLabels:
+      {{- include "stockpilot.selectorLabels" $sel | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "stockpilot.labels" . | nindent 8 }}
+        {{- include "stockpilot.selectorLabels" $sel | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "stockpilot.podSecurity" . | nindent 8 }}
+      initContainers:
+        # Wait for PostgreSQL so migrations don't crash-loop on a fresh install.
+        - name: wait-for-db
+          image: {{ .Values.postgres.image }}
+          command: ["sh", "-c", "until pg_isready -h {{ include "stockpilot.postgresHost" . }} -p 5432; do echo waiting for postgres; sleep 2; done"]
+          securityContext:
+            runAsUser: 70
+            {{- include "stockpilot.containerSecurity" . | nindent 12 }}
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+      containers:
+        - name: backend
+          image: {{ include "stockpilot.image" (dict "root" . "svc" .Values.backend) | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.backend.port }}
+          env:
+            - name: DB_USER
+              valueFrom: { secretKeyRef: { name: {{ include "stockpilot.postgresHost" . }}, key: username } }
+            - name: DB_PASSWORD
+              valueFrom: { secretKeyRef: { name: {{ include "stockpilot.postgresHost" . }}, key: password } }
+            - name: DB_NAME
+              valueFrom: { secretKeyRef: { name: {{ include "stockpilot.postgresHost" . }}, key: database } }
+            - name: DATABASE_URL
+              value: "postgresql+psycopg://$(DB_USER):$(DB_PASSWORD)@{{ include "stockpilot.postgresHost" . }}:5432/$(DB_NAME)"
+            - name: CORS_ORIGINS
+              value: {{ .Values.backend.corsOrigins | quote }}
+          startupProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 3
+            failureThreshold: 40
+          readinessProbe:
+            httpGet: { path: /ready, port: http }
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          securityContext:
+            runAsUser: 10001
+            {{- include "stockpilot.containerSecurity" . | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "stockpilot.backendService" . }}
+  labels:
+    {{- include "stockpilot.labels" . | nindent 4 }}
+    {{- include "stockpilot.selectorLabels" $sel | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "stockpilot.selectorLabels" $sel | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.backend.port }}
+      targetPort: http

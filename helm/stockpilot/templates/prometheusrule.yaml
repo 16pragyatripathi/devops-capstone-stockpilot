@@ -1,0 +1,42 @@
+{{- if and .Values.monitoring.prometheusRules.enabled (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1") }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "stockpilot.fullname" . }}
+  labels:
+    {{- include "stockpilot.labels" . | nindent 4 }}
+    {{- with .Values.monitoring.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: stockpilot
+      rules:
+        - alert: StockPilotBackendDown
+          expr: absent(up{service="{{ include "stockpilot.backendService" . }}"} == 1)
+          for: 2m
+          labels: { severity: critical }
+          annotations:
+            summary: No StockPilot backend pod is being scraped successfully.
+        - alert: StockPilotHighErrorRate
+          expr: |
+            sum(rate(http_requests_total{service="{{ include "stockpilot.backendService" . }}",status="5xx"}[5m]))
+              / clamp_min(sum(rate(http_requests_total{service="{{ include "stockpilot.backendService" . }}"}[5m])), 1e-9) > 0.05
+          for: 5m
+          labels: { severity: warning }
+          annotations:
+            summary: More than 5% of StockPilot API requests are failing.
+        - alert: StockPilotSlowRequests
+          expr: |
+            histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{service="{{ include "stockpilot.backendService" . }}"}[5m]))) > 1
+          for: 10m
+          labels: { severity: warning }
+          annotations:
+            summary: StockPilot API p95 latency is above 1 second.
+        - alert: StockPilotLowStock
+          expr: max(stockpilot_low_stock_products) > 0
+          for: 15m
+          labels: { severity: info }
+          annotations:
+            summary: "{{ "{{" }} $value {{ "}}" }} products are at or below their reorder level."
+{{- end }}

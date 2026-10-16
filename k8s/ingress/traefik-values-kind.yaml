@@ -1,0 +1,27 @@
+# Traefik on a local kind cluster: bound to the node's host ports, which kind maps to the laptop.
+ingressClass:
+  enabled: true
+  isDefaultClass: true
+  name: traefik
+service:
+  type: NodePort
+ports:
+  web:
+    port: 8000
+    hostPort: 80
+    nodePort: 30080
+  websecure:
+    hostPort: 443
+    nodePort: 30443
+providers:
+  kubernetesIngress:
+    publishedService:
+      enabled: false
+nodeSelector:
+  ingress-ready: "true"
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+updateStrategy:
+  type: Recreate

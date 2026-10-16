@@ -1,0 +1,12 @@
+StockPilot {{ .Chart.AppVersion }} is deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+  kubectl get pods,svc,ingress,hpa -n {{ .Release.Namespace }}
+
+{{- if .Values.ingress.enabled }}
+Open the app through the Ingress{{ with .Values.ingress.host }}: http://{{ . }}/{{ else }} (any host): see `kubectl get ingress -n {{ .Release.Namespace }}`{{ end }}
+  /          React frontend
+  /api       FastAPI backend
+  /docs      Swagger UI
+{{- else }}
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "stockpilot.frontendService" . }} 8080:80
+{{- end }}

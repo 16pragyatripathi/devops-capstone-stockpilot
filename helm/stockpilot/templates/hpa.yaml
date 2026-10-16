@@ -1,0 +1,29 @@
+{{- if .Values.hpa.enabled }}
+{{- range $component := list "backend" "frontend" }}
+{{- $cfg := index $.Values.hpa $component }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "stockpilot.fullname" $ }}-{{ $component }}
+  labels:
+    {{- include "stockpilot.labels" $ | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "stockpilot.fullname" $ }}-{{ $component }}
+  minReplicas: {{ $cfg.minReplicas }}
+  maxReplicas: {{ $cfg.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $cfg.targetCPUUtilizationPercentage }}
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 60   # shorter than the 5 min default so the demo scales back quickly
+{{- end }}
+{{- end }}
