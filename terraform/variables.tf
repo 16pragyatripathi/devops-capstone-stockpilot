@@ -60,3 +60,9 @@ variable "create_github_oidc_provider" {
   type        = bool
   default     = true
 }
+
+variable "github_oidc_sub_prefix" {
+  description = "Immutable OIDC subject prefix, from: gh api repos/<owner>/<repo>/actions/oidc/customization/sub (sub_claim_prefix)"
+  type        = string
+  default     = ""
+}

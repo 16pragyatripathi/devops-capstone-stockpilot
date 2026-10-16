@@ -39,7 +39,11 @@ resource "aws_iam_role" "github_deploy" {
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          "token.actions.githubusercontent.com:sub" = "repo:${var.github_repository}:ref:refs/heads/main"
+          # Accept both the classic name-based subject and GitHub's immutable (ID-based) subject.
+          "token.actions.githubusercontent.com:sub" = compact([
+            "repo:${var.github_repository}:ref:refs/heads/main",
+            var.github_oidc_sub_prefix == "" ? "" : "${var.github_oidc_sub_prefix}:ref:refs/heads/main",
+          ])
         }
       }
     }]
