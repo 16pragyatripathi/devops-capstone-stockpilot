@@ -1,0 +1,194 @@
+name: StockPilot CI/CD
+
+# test -> build + Trivy scan -> push to GHCR (SHA tag) -> Helm deploy to EKS
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  backend-tests:
+    name: Backend lint + pytest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Lint (ruff)
+        run: ruff check --output-format=github .
+      - name: Run tests (pytest)
+        run: pytest -v --junitxml=pytest-report.xml
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pytest-report
+          path: backend/pytest-report.xml
+
+  frontend-build:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+
+  build-scan-push:
+    name: Build, scan, push (${{ matrix.component }})
+    needs: [backend-tests, frontend-build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write          # push to GHCR
+      security-events: write   # upload Trivy results to the Security tab
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [backend, frontend]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Image name
+        id: img
+        run: |
+          owner="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          echo "name=${REGISTRY}/${owner}/stockpilot-${{ matrix.component }}" >> "$GITHUB_OUTPUT"
+          echo "ref=${REGISTRY}/${owner}/stockpilot-${{ matrix.component }}:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ./${{ matrix.component }}
+          load: true
+          tags: ${{ steps.img.outputs.ref }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
+
+      # Pinned to a commit SHA: trivy-action's tags were hijacked in a 2026 supply-chain attack.
+      - name: Trivy scan (fail on HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ steps.img.outputs.ref }}
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          vuln-type: os,library
+          exit-code: "1"
+
+      - name: Trivy SARIF report (all severities)
+        if: always()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ steps.img.outputs.ref }}
+          format: sarif
+          output: trivy-${{ matrix.component }}.sarif
+          skip-setup-trivy: true
+
+      - name: Upload Trivy results to GitHub Security
+        if: always() && github.event_name == 'push'
+        continue-on-error: true   # code scanning needs a public repo (or GHAS)
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          sarif_file: trivy-${{ matrix.component }}.sarif
+          category: trivy-${{ matrix.component }}
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image (tag = commit SHA)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          docker push "${{ steps.img.outputs.ref }}"
+          echo "### ${{ matrix.component }} image" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`${{ steps.img.outputs.ref }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: Deploy to EKS (Helm)
+    needs: build-scan-push
+    # Runs only when the EKS cluster exists: set the AWS_DEPLOY_ROLE_ARN repository variable
+    # (Terraform output github_deploy_role_arn). Without it the pipeline stops after the push.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.AWS_DEPLOY_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write   # OIDC token exchanged for the AWS role; no stored AWS keys
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION || 'ap-south-1' }}
+      CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME || 'stockpilot-dev-eks' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+
+      - name: Configure kubectl
+        run: aws eks update-kubeconfig --region "$AWS_REGION" --name "$CLUSTER_NAME"
+
+      - name: Helm upgrade
+        run: |
+          owner="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          kubectl apply -f k8s/namespace.yaml
+          helm upgrade --install stockpilot ./helm/stockpilot -n stockpilot \
+            -f helm/stockpilot/values-prod.yaml \
+            --set image.owner="$owner" \
+            --set backend.tag="$GITHUB_SHA" \
+            --set frontend.tag="$GITHUB_SHA" \
+            --wait --timeout 10m --atomic
+
+      - name: Smoke test through the Ingress
+        run: |
+          kubectl get pods,svc,ingress,hpa -n stockpilot
+          lb="$(kubectl get svc -n traefik traefik -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
+          for i in $(seq 1 20); do
+            if curl -fsS "http://$lb/api/health" && curl -fsS -o /dev/null "http://$lb/"; then
+              echo; echo "Deployed ${GITHUB_SHA::7} -> http://$lb" | tee -a "$GITHUB_STEP_SUMMARY"; exit 0
+            fi
+            sleep 10
+          done
+          echo "Smoke test failed"; exit 1
