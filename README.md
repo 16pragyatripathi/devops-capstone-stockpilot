@@ -48,7 +48,7 @@ Developer ── git push ──► GitHub
 | Containers | Multi-stage Dockerfiles, non-root users, Docker Compose |
 | CI/CD | GitHub Actions: test → build → Trivy → GHCR → Helm deploy |
 | Security | Trivy image scan (gate + SARIF to GitHub Security), SHA-pinned actions, OIDC to AWS, restricted Pod Security |
-| Infrastructure | Terraform: VPC (2 public + 2 private subnets, NAT), EKS 1.34, managed node group, EBS CSI |
+| Infrastructure | Terraform: VPC (2 public + 2 private subnets, NAT), EKS 1.36, managed node group, EBS CSI |
 | Orchestration | Kubernetes, Helm chart, Traefik Ingress, HPA, PDBs, liveness/readiness/startup probes |
 | Observability | `/metrics` (Prometheus format), kube-prometheus-stack, Grafana dashboard, PrometheusRules |
 
@@ -201,12 +201,12 @@ docker run --rm stockpilot-backend:local id     # uid=10001(app)
 * Images are tagged with the **full commit SHA**, never `latest`. Every pod traces back to a commit.
 * Every third-party action is **pinned to a commit SHA**. In 2026, attackers hijacked
   `aquasecurity/trivy-action`'s version tags, and pinning to a SHA protects against that.
-* The deploy job uses **GitHub OIDC**, so no AWS keys are stored in GitHub. It runs only when the
-  repository variable `AWS_DEPLOY_ROLE_ARN` is set, which means the cluster exists. While the
-  cluster is torn down, the pipeline still tests, scans and publishes.
+* The deploy job uses **GitHub OIDC**, so no AWS keys are stored in GitHub. It runs only while the
+  repository variable `DEPLOY_ENABLED` is `true`, which means the cluster exists. While the cluster
+  is torn down, the pipeline still tests, scans and publishes.
 
-Repository variables used by `deploy`: `AWS_DEPLOY_ROLE_ARN` (Terraform output), `AWS_REGION`,
-`EKS_CLUSTER_NAME`.
+Used by `deploy`: secret `AWS_DEPLOY_ROLE_ARN` (Terraform output, kept as a secret so it's masked in
+public logs), and variables `DEPLOY_ENABLED`, `AWS_REGION`, `EKS_CLUSTER_NAME`.
 
 ---
 
@@ -246,6 +246,12 @@ $(terraform output -raw configure_kubectl)
 Creates: VPC `10.20.0.0/16` with **2 public** subnets (NAT, load balancers) and **2 private**
 subnets (worker nodes) across 2 AZs; an **EKS** cluster with a managed node group (2 × t3.medium,
 autoscaling 2–4); EKS add-ons (VPC CNI, CoreDNS, kube-proxy, EBS CSI driver via Pod Identity); and the GitHub OIDC deploy role. Default region: `ap-south-1`.
+
+**Live deployment:** the evaluated stack runs in **`ap-southeast-1` (Singapore)** on EKS **1.36**.
+The account's ap-south-1 VPC quota (5/5) was full: the first apply failed with `VpcLimitExceeded`. I
+destroyed the partial resources with a reviewed `terraform plan -destroy` and applied again in a region
+with free capacity. Region and version are variables, so this changed no code. Terraform was run from
+**AWS CloudShell**, which uses the console session, so no long-lived access keys were created.
 
 ---
 

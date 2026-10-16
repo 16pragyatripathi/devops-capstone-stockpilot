@@ -143,9 +143,9 @@ jobs:
   deploy:
     name: Deploy to EKS (Helm)
     needs: build-scan-push
-    # Runs only when the EKS cluster exists: set the AWS_DEPLOY_ROLE_ARN repository variable
-    # (Terraform output github_deploy_role_arn). Without it the pipeline stops after the push.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.AWS_DEPLOY_ROLE_ARN != ''
+    # Runs only while the EKS cluster exists: set repository variable DEPLOY_ENABLED=true and secret
+    # AWS_DEPLOY_ROLE_ARN (Terraform output github_deploy_role_arn; a secret so it is masked in public logs).
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     environment: production
     concurrency:
@@ -162,7 +162,7 @@ jobs:
 
       - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
