@@ -1,0 +1,22 @@
+$ kubectl get hpa -n stockpilot   # during ./scripts/load-test.sh (kind)
+NAME                  REFERENCE                        TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+stockpilot-backend    Deployment/stockpilot-backend    cpu: 359%/60%   2         6         6          12m
+stockpilot-frontend   Deployment/stockpilot-frontend   cpu: 2%/70%     2         4         2          12m
+
+$ kubectl get pods -n stockpilot -o wide
+NAME                                   READY   STATUS    RESTARTS   AGE   IP            NODE                 NOMINATED NODE   READINESS GATES
+loadgen-1                              1/1     Running   0          83s   10.244.1.16   stockpilot-worker2   <none>           <none>
+loadgen-2                              1/1     Running   0          83s   10.244.1.17   stockpilot-worker2   <none>           <none>
+loadgen-3                              1/1     Running   0          83s   10.244.1.18   stockpilot-worker2   <none>           <none>
+loadgen-4                              1/1     Running   0          83s   10.244.1.19   stockpilot-worker2   <none>           <none>
+loadgen-5                              1/1     Running   0          83s   10.244.1.20   stockpilot-worker2   <none>           <none>
+loadgen-6                              1/1     Running   0          83s   10.244.1.21   stockpilot-worker2   <none>           <none>
+stockpilot-backend-889d8f948-2hnz4     1/1     Running   0          40s   10.244.2.10   stockpilot-worker    <none>           <none>
+stockpilot-backend-889d8f948-dqv7k     1/1     Running   0          11m   10.244.2.8    stockpilot-worker    <none>           <none>
+stockpilot-backend-889d8f948-f652n     1/1     Running   0          40s   10.244.1.22   stockpilot-worker2   <none>           <none>
+stockpilot-backend-889d8f948-llvzp     1/1     Running   0          11m   10.244.1.14   stockpilot-worker2   <none>           <none>
+stockpilot-backend-889d8f948-pvlnp     1/1     Running   0          40s   10.244.1.23   stockpilot-worker2   <none>           <none>
+stockpilot-backend-889d8f948-rjqz4     1/1     Running   0          40s   10.244.2.9    stockpilot-worker    <none>           <none>
+stockpilot-frontend-654bb6b956-jcp9h   1/1     Running   0          11m   10.244.1.15   stockpilot-worker2   <none>           <none>
+stockpilot-frontend-654bb6b956-tj98v   1/1     Running   0          11m   10.244.2.7    stockpilot-worker    <none>           <none>
+stockpilot-postgres-0                  1/1     Running   0          12m   10.244.1.13   stockpilot-worker2   <none>           <none>

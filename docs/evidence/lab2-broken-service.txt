@@ -1,0 +1,22 @@
+$ kubectl apply -f troubleshooting/broken-service.yaml
+service/stockpilot-api-broken created
+
+$ kubectl get endpointslices -n stockpilot -l kubernetes.io/service-name=stockpilot-api-broken
+NAME                          ADDRESSTYPE   PORTS     ENDPOINTS   AGE
+stockpilot-api-broken-m5p9k   IPv4          <unset>   <unset>     0s
+
+$ kubectl get pods -n stockpilot -l app.kubernetes.io/component=backend --show-labels | cut -c1-200
+NAME                                 READY   STATUS    RESTARTS   AGE   LABELS
+stockpilot-backend-889d8f948-llvzp   1/1     Running   0          30m   app.kubernetes.io/component=backend,app.kubernetes.io/instance=stockpilot,app.kubernetes.io/managed-by=Helm,app.kubernetes.io/na
+stockpilot-backend-889d8f948-pvlnp   1/1     Running   0          19m   app.kubernetes.io/component=backend,app.kubernetes.io/instance=stockpilot,app.kubernetes.io/managed-by=Helm,app.kubernetes.io/na
+
+$ kubectl patch svc stockpilot-api-broken -n stockpilot --type merge -p '{"spec":{"selector":{"app.kubernetes.io/name":"stockpilot-backend"},"ports":[{"port":8000,"targetPort":8000}]}}'
+service/stockpilot-api-broken patched
+
+$ kubectl get endpointslices -n stockpilot -l kubernetes.io/service-name=stockpilot-api-broken
+NAME                          ADDRESSTYPE   PORTS   ENDPOINTS                 AGE
+stockpilot-api-broken-m5p9k   IPv4          8000    10.244.1.23,10.244.1.14   3s
+
+$ kubectl delete -f troubleshooting/broken-service.yaml
+service "stockpilot-api-broken" deleted from stockpilot namespace
+

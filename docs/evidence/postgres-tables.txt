@@ -1,0 +1,27 @@
+$ kubectl exec -n stockpilot stockpilot-postgres-0 -- psql -U stockpilot -d stockpilot -c '\dt' -c 'select id, sku, name, quantity, reorder_level from products order by id;'
+               List of relations
+ Schema |      Name       | Type  |   Owner    
+--------+-----------------+-------+------------
+ public | alembic_version | table | stockpilot
+ public | categories      | table | stockpilot
+ public | products        | table | stockpilot
+ public | stock_movements | table | stockpilot
+(4 rows)
+
+ id |    sku    |          name          | quantity | reorder_level 
+----+-----------+------------------------+----------+---------------
+  1 | ELEC-1001 | Wireless Mouse         |      136 |            30
+  2 | ELEC-1002 | Mechanical Keyboard    |       18 |            20
+  3 | ELEC-1003 | 27" 4K Monitor         |        9 |             5
+  4 | ELEC-1004 | USB-C Docking Station  |        0 |             8
+  5 | OFF-2001  | A4 Copier Paper (500)  |      634 |           100
+  6 | OFF-2002  | Gel Pens (Box of 12)   |       35 |            40
+  7 | OFF-2003  | Sticky Notes Pack      |      204 |            50
+  8 | FUR-3001  | Ergonomic Office Chair |       12 |             4
+  9 | FUR-3002  | Standing Desk Frame    |        3 |             3
+ 10 | NET-4001  | Cat6 Patch Cable 2m    |      120 |            50
+ 11 | NET-4002  | 24-Port Gigabit Switch |        7 |             2
+ 12 | NET-4003  | Wi-Fi 6 Access Point   |       22 |             6
+(12 rows)
+
+

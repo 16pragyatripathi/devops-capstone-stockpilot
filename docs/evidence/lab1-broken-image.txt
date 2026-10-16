@@ -1,0 +1,27 @@
+$ kubectl apply -f troubleshooting/broken-image.yaml
+deployment.apps/stockpilot-broken-image created
+
+$ kubectl get pods -n stockpilot -l lab=broken-image
+NAME                                       READY   STATUS             RESTARTS   AGE
+stockpilot-broken-image-695b96b794-rvgs9   0/1     ImagePullBackOff   0          25s
+
+$ kubectl describe pod -n stockpilot -l lab=broken-image | sed -n '/Events:/,$p' | tail -8
+  Type     Reason     Age               From               Message
+  ----     ------     ----              ----               -------
+  Normal   Scheduled  25s               default-scheduler  Successfully assigned stockpilot/stockpilot-broken-image-695b96b794-rvgs9 to stockpilot-worker
+  Normal   BackOff    22s               kubelet            spec.containers{backend}: Back-off pulling image "ghcr.io/16pragyatripathi/stockpilot-backend:v9.9.9-does-not-exist"
+  Warning  Failed     22s               kubelet            spec.containers{backend}: Error: ImagePullBackOff
+  Normal   Pulling    7s (x2 over 24s)  kubelet            spec.containers{backend}: Pulling image "ghcr.io/16pragyatripathi/stockpilot-backend:v9.9.9-does-not-exist"
+  Warning  Failed     5s (x2 over 23s)  kubelet            spec.containers{backend}: Failed to pull image "ghcr.io/16pragyatripathi/stockpilot-backend:v9.9.9-does-not-exist": rpc error: code = NotFound desc = failed to pull and unpack image "ghcr.io/16pragyatripathi/stockpilot-backend:v9.9.9-does-not-exist": failed to resolve reference "ghcr.io/16pragyatripathi/stockpilot-backend:v9.9.9-does-not-exist": ghcr.io/16pragyatripathi/stockpilot-backend:v9.9.9-does-not-exist: not found
+  Warning  Failed     5s (x2 over 23s)  kubelet            spec.containers{backend}: Error: ErrImagePull
+
+$ kubectl set image deploy/stockpilot-broken-image -n stockpilot backend=stockpilot-backend:local
+deployment.apps/stockpilot-broken-image image updated
+
+$ kubectl get pods -n stockpilot -l lab=broken-image
+NAME                                       READY   STATUS    RESTARTS     AGE
+stockpilot-broken-image-585f9c68bd-lqg2k   1/1     Running   1 (7s ago)   16s
+
+$ kubectl delete -f troubleshooting/broken-image.yaml
+deployment.apps "stockpilot-broken-image" deleted from stockpilot namespace
+

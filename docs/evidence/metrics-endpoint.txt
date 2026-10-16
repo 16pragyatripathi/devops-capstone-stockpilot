@@ -1,0 +1,29 @@
+$ curl -s http://stockpilot.localhost/api/health
+{"status":"UP"}
+$ curl -s http://stockpilot.localhost/metrics | head -5
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+(via backend service)
+$ kubectl exec -n stockpilot deploy/stockpilot-backend -- python -c "import urllib.request;print(urllib.request.urlopen('http://localhost:8000/metrics').read().decode())" | grep -E '^(http_requests_total|stockpilot_)' | head -25
+Defaulted container "backend" out of: backend, wait-for-db (init)
+stockpilot_stock_movements_total{reason="sale"} 1.0
+stockpilot_stock_movements_total{reason="restock"} 1.0
+stockpilot_stock_movements_created{reason="sale"} 1.79216857748119e+09
+stockpilot_stock_movements_created{reason="restock"} 1.7921685775503435e+09
+stockpilot_units_moved_total{direction="out"} 2.0
+stockpilot_units_moved_total{direction="in"} 40.0
+stockpilot_units_moved_created{direction="out"} 1.7921685774812047e+09
+stockpilot_units_moved_created{direction="in"} 1.7921685775503516e+09
+stockpilot_low_stock_products 4.0
+stockpilot_inventory_value 21711.39
+http_requests_total{handler="/api/products",method="GET",status="2xx"} 11233.0
+http_requests_total{handler="/api/categories",method="GET",status="2xx"} 11166.0
+http_requests_total{handler="/api/movements",method="GET",status="2xx"} 11216.0
+http_requests_total{handler="/api/stats",method="GET",status="2xx"} 11319.0
+http_requests_total{handler="/api/products/{product_id}/adjust",method="POST",status="2xx"} 2.0
+http_requests_total{handler="/docs",method="GET",status="2xx"} 1.0
+

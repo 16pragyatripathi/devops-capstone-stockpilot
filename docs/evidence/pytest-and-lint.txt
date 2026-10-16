@@ -1,0 +1,37 @@
+$ .venv/bin/ruff check .
+All checks passed!
+
+$ .venv/bin/pytest -v
+============================= test session starts ==============================
+platform darwin -- Python 3.12.14, pytest-9.1.1, pluggy-1.7.0 -- /Users/pragyatripathi/devops_capstone/backend/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/pragyatripathi/devops_capstone/backend
+configfile: pytest.ini
+testpaths: tests
+plugins: anyio-4.15.1
+collecting ... collected 21 items
+
+tests/test_categories.py::test_create_and_list_categories PASSED         [  4%]
+tests/test_categories.py::test_duplicate_category_is_rejected PASSED     [  9%]
+tests/test_categories.py::test_category_counts_products PASSED           [ 14%]
+tests/test_categories.py::test_deleting_category_keeps_products PASSED   [ 19%]
+tests/test_health.py::test_root PASSED                                   [ 23%]
+tests/test_health.py::test_health PASSED                                 [ 28%]
+tests/test_health.py::test_ready_checks_database PASSED                  [ 33%]
+tests/test_health.py::test_metrics_endpoint_exposes_prometheus_format PASSED [ 38%]
+tests/test_products.py::test_create_product PASSED                       [ 42%]
+tests/test_products.py::test_create_product_validates_input PASSED       [ 47%]
+tests/test_products.py::test_duplicate_sku_is_rejected PASSED            [ 52%]
+tests/test_products.py::test_unknown_category_is_rejected PASSED         [ 57%]
+tests/test_products.py::test_get_product_and_404 PASSED                  [ 61%]
+tests/test_products.py::test_update_product PASSED                       [ 66%]
+tests/test_products.py::test_delete_product PASSED                       [ 71%]
+tests/test_products.py::test_search_and_filter_products PASSED           [ 76%]
+tests/test_stock.py::test_restock_and_sale_update_quantity PASSED        [ 80%]
+tests/test_stock.py::test_cannot_remove_more_than_in_stock PASSED        [ 85%]
+tests/test_stock.py::test_zero_change_and_bad_reason_rejected PASSED     [ 90%]
+tests/test_stock.py::test_movements_are_recorded PASSED                  [ 95%]
+tests/test_stock.py::test_stats PASSED                                   [100%]
+
+============================== 21 passed in 0.14s ==============================
+

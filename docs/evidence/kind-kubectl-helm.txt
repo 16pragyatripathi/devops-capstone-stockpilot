@@ -1,0 +1,47 @@
+$ kubectl get nodes
+NAME                       STATUS   ROLES           AGE   VERSION
+stockpilot-control-plane   Ready    control-plane   48m   v1.37.0
+stockpilot-worker          Ready    <none>          48m   v1.37.0
+stockpilot-worker2         Ready    <none>          48m   v1.37.0
+
+$ kubectl get pods -n stockpilot -o wide
+NAME                                   READY   STATUS      RESTARTS   AGE   IP            NODE                 NOMINATED NODE   READINESS GATES
+loadgen-1                              0/1     Completed   0          10m   10.244.2.11   stockpilot-worker    <none>           <none>
+loadgen-2                              0/1     Completed   0          10m   10.244.2.12   stockpilot-worker    <none>           <none>
+loadgen-3                              0/1     Completed   0          10m   10.244.2.13   stockpilot-worker    <none>           <none>
+loadgen-4                              0/1     Completed   0          10m   10.244.2.14   stockpilot-worker    <none>           <none>
+stockpilot-backend-889d8f948-llvzp     1/1     Running     0          29m   10.244.1.14   stockpilot-worker2   <none>           <none>
+stockpilot-backend-889d8f948-pvlnp     1/1     Running     0          18m   10.244.1.23   stockpilot-worker2   <none>           <none>
+stockpilot-frontend-654bb6b956-jcp9h   1/1     Running     0          29m   10.244.1.15   stockpilot-worker2   <none>           <none>
+stockpilot-frontend-654bb6b956-tj98v   1/1     Running     0          29m   10.244.2.7    stockpilot-worker    <none>           <none>
+stockpilot-postgres-0                  1/1     Running     0          30m   10.244.1.13   stockpilot-worker2   <none>           <none>
+
+$ kubectl get svc -n stockpilot
+NAME                  TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+stockpilot-backend    ClusterIP   10.96.11.81    <none>        8000/TCP   30m
+stockpilot-frontend   ClusterIP   10.96.80.185   <none>        80/TCP     30m
+stockpilot-postgres   ClusterIP   None           <none>        5432/TCP   30m
+
+$ kubectl get ingress -n stockpilot
+NAME         CLASS     HOSTS                  ADDRESS   PORTS   AGE
+stockpilot   traefik   stockpilot.localhost             80      30m
+
+$ kubectl get hpa -n stockpilot
+NAME                  REFERENCE                        TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+stockpilot-backend    Deployment/stockpilot-backend    cpu: 5%/60%   2         6         2          30m
+stockpilot-frontend   Deployment/stockpilot-frontend   cpu: 2%/70%   2         4         2          30m
+
+$ helm list -A
+NAME                 	NAMESPACE  	REVISION	UPDATED                             	STATUS  	CHART                        	APP VERSION
+kube-prometheus-stack	monitoring 	3       	2026-10-16 21:51:48.743521 +0530 IST	deployed	kube-prometheus-stack-92.10.0	v0.94.1    
+metrics-server       	kube-system	4       	2026-10-16 21:51:46.433582 +0530 IST	deployed	metrics-server-3.14.0        	0.9.0      
+stockpilot           	stockpilot 	1       	2026-10-16 21:52:21.925748 +0530 IST	deployed	stockpilot-1.0.0             	1.0.0      
+traefik              	traefik    	4       	2026-10-16 21:51:46.941103 +0530 IST	deployed	traefik-42.0.0               	v3.7.14    
+
+$ kubectl get servicemonitor,prometheusrule -n stockpilot
+NAME                                                      AGE
+servicemonitor.monitoring.coreos.com/stockpilot-backend   30m
+
+NAME                                              AGE
+prometheusrule.monitoring.coreos.com/stockpilot   30m
+
