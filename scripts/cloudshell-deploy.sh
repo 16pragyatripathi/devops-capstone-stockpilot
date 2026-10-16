@@ -15,12 +15,13 @@ echo "==> Tools"
 command -v terraform >/dev/null || { curl -fsSLo /tmp/tf.zip "https://releases.hashicorp.com/terraform/1.16.5/terraform_1.16.5_linux_${ARCH}.zip" && unzip -oq /tmp/tf.zip -d "$BIN"; }
 command -v helm >/dev/null || { curl -fsSL "https://get.helm.sh/helm-v4.3.0-linux-${ARCH}.tar.gz" | tar xz -C /tmp && mv "/tmp/linux-${ARCH}/helm" "$BIN/"; }
 command -v kubectl >/dev/null || { curl -fsSLo "$BIN/kubectl" "https://dl.k8s.io/release/v1.34.1/bin/linux/${ARCH}/kubectl" && chmod +x "$BIN/kubectl"; }
-terraform version | head -1; helm version --short; kubectl version --client | head -1
+terraform -version; helm version --short; kubectl version --client
 aws sts get-caller-identity
 
+# Capture first, then match: piping into `grep -q` can SIGPIPE the producer under pipefail.
+PROVIDERS="$(aws iam list-open-id-connect-providers --query 'OpenIDConnectProviderList[].Arn' --output text)"
 CREATE_OIDC=true
-aws iam list-open-id-connect-providers --query 'OpenIDConnectProviderList[].Arn' --output text \
-  | grep -q token.actions.githubusercontent.com && CREATE_OIDC=false
+[[ "$PROVIDERS" == *token.actions.githubusercontent.com* ]] && CREATE_OIDC=false
 K8S="$(aws eks describe-cluster-versions --default-only --query 'clusterVersions[0].clusterVersion' --output text 2>/dev/null || true)"
 [[ "$K8S" =~ ^1\.[0-9]+$ ]] || K8S=1.34
 echo "GitHub OIDC provider to be created: $CREATE_OIDC   Kubernetes: $K8S"
