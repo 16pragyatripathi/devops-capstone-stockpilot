@@ -16,7 +16,7 @@ const NAV = [
   ["categories", "Categories", "tag"],
 ];
 const TITLES = {
-  dashboard: ["Inventory overview", "Live stock levels, value and reorder alerts"],
+  dashboard: ["Inventory overview", "Live stock levels, value and reorder alerts · running on AWS EKS"],
   products: ["Products", "Catalogue, stock on hand and pricing"],
   movements: ["Stock movements", "Audit trail of every stock change"],
   categories: ["Categories", "Group products for reporting"],
