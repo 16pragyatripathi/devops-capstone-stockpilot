@@ -4,7 +4,7 @@
 
 | | File |
 |---|---|
-| 🎬 **Presentation video** | _Video link to be added here_ |
+| 🎬 **Presentation video** | [Watch on Google Drive](https://drive.google.com/file/d/1TLXfiFgcn7XEiKcE1aOj_w9XQatLyJ_M/view?usp=sharing) |
 | 📊 **Slide deck** (PowerPoint, with speaker notes) | [StockPilot-Capstone.pptx](StockPilot-Capstone.pptx) |
 | 📊 Slide deck (PDF) | [StockPilot-Capstone.pdf](StockPilot-Capstone.pdf) |
 
