@@ -94,6 +94,11 @@ jobs:
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
+          pull: true
+          # The build stage is cached, but the runtime stage is always rebuilt, so
+          # `apk upgrade` / `apt-get upgrade` pick up OS security fixes published since the
+          # last build. A cached upgrade layer once hid a fixed CVE from the image.
+          no-cache-filters: runtime
           cache-from: type=gha,scope=${{ matrix.component }}
           cache-to: type=gha,mode=max,scope=${{ matrix.component }}
 

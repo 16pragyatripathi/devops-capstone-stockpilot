@@ -7,7 +7,7 @@ COPY . .
 RUN npm run build
 
 # ---- runtime stage: unprivileged Nginx serves the static files (no Node in the final image) ----
-FROM nginxinc/nginx-unprivileged:1.29-alpine
+FROM nginxinc/nginx-unprivileged:1.31-alpine AS runtime
 USER root
 RUN apk upgrade --no-cache
 USER 101
